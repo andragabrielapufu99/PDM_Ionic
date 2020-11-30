@@ -1,18 +1,23 @@
 import React, { useContext } from 'react';
-import { IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonList, IonLoading, IonPage, IonTitle, IonToolbar } from "@ionic/react";
+import { IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonList, IonLoading, IonPage, IonTitle, IonToolbar } from "@ionic/react";
 import { RouteComponentProps } from 'react-router';
 import { ItemContext } from './ItemProvider';
 import { Item } from '../item/Item';
 import { add } from 'ionicons/icons';
+import { AuthContext } from '../auth/AuthProvider';
 
 const ItemList : React.FC<RouteComponentProps> = ({history}) => {
     const {items,fetching} = useContext(ItemContext);
-    console.log('render');
+    const {logout} = useContext(AuthContext);
+    console.log('render ItemList');
     return (
         <IonPage>
             <IonHeader>
                 <IonToolbar>
-                    <IonTitle>Music Store</IonTitle>
+                    <IonTitle slot='start'>Music Store</IonTitle>
+                    <IonButtons slot='end'>
+                        <IonButton onClick = {logout}>Logout</IonButton>
+                    </IonButtons>
                 </IonToolbar>
             </IonHeader>
             <IonContent>
@@ -20,13 +25,14 @@ const ItemList : React.FC<RouteComponentProps> = ({history}) => {
                 { items && (
                     <IonList>
                         {
-                        items.map( ({id ,title,artist,year,genre}) =>
-                            <Item key = {id} 
+                        items.map( ({id ,title,artist,year,genre,userId}) =>
+                            <Item key={id}
                                 id = {id} 
                                 title = {title} 
                                 artist = {artist} 
                                 year = {year} 
                                 genre = {genre}
+                                userId = {userId}
                                 onEdit = {id => history.push(`/item/${id}`)}
                             />)
                         }

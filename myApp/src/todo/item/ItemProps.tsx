@@ -3,5 +3,6 @@ export interface ItemProps{
     title : string,
     artist : string,
     year? : number,
-    genre : string
+    genre : string,
+    userId : string,
 }

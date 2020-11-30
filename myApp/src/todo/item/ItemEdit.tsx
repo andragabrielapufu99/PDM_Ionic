@@ -15,36 +15,37 @@ const ItemEdit : React.FC<ItemEditProps> = ({history,match}) => {
     const [artist,setArtist] = useState<string>('');
     const [year,setYear] = useState<number>();
     const [genre,setGenre] = useState<string>('');
+    const [userId,setUserId] = useState<string>('');
     const [item,setItem] = useState<ItemProps>();
     var canBack = true;
     useEffect( () => {
         console.log('useEffect');
-        var routeId : number;
-        if(Number(match.params.id) === undefined){
+        console.log(typeof(match.params.id));
+        let routeId = Number(match.params.id);
+        if(isNaN(routeId)){
+            //create
             routeId = -1;
+            
         }
-        else{
-            routeId = Number(match.params.id);
-        }
-        console.log(routeId);
-        const item = items?.find(it => it.id === routeId);
+        let item = items?.find(it => it.id === routeId);
         setItem(item);
         if(item){
+            //update
             setTitle(item.title);
             setArtist(item.artist);
             setYear(item.year);
             setGenre(item.genre);
+            setUserId(item.userId);
         }
     },
     [match.params.id,items]
     );
 
     const handleSave = () => {
-        
         if(year === undefined){
             setYear(-1);
         }
-        const editedItem = item? {...item,title,artist,year,genre} : {title,artist,year,genre};
+        const editedItem = item? {...item,title,artist,year,genre,userId} : {title,artist,year,genre,userId};
 
         saveItem && saveItem(editedItem).then(() => {
             if(!canBack){
@@ -60,7 +61,7 @@ const ItemEdit : React.FC<ItemEditProps> = ({history,match}) => {
             } 
         });
     }
-    console.log('render');
+    console.log('render ItemEdit');
     return (
         <IonPage>
             <IonHeader>

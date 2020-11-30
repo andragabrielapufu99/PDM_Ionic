@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useReducer } from 'react';
+import React, { useCallback, useContext, useEffect, useReducer } from 'react';
 import PropTypes from 'prop-types';
 import { ItemProps } from '../item/ItemProps';
-import { addItem, getItems, myWebSocket, updateItem } from '../../common/ItemApi';
+import { addItem, getItems, myWebSocket, updateItem } from '../../remote/ItemApi';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthContext, AuthState } from '../auth/AuthProvider';
+import { Redirect } from 'react-router';
 
 type SaveItemFn = (item : ItemProps) => Promise<any>; 
 
@@ -13,7 +15,7 @@ export interface ItemsState {
     fetchingError? : Error | null,
     saving : boolean,
     savingError? : Error | null,
-    saveItem? : SaveItemFn
+    saveItem? : SaveItemFn,
 }
 
 interface ActionProps {
@@ -27,7 +29,7 @@ const initialState : ItemsState = {
     items : [],
     saveItem : undefined,
     fetchingError : null,
-    savingError : null
+    savingError : null,
 }
 
 const FETCH_ITEMS_STARTED = 'FETCH_ITEMS_STARTED';
@@ -44,12 +46,19 @@ const reducer : (state : ItemsState, action : ActionProps) => ItemsState = (stat
         case FETCH_ITEMS_STARTED:
             return {...state, fetching : true, fetchingError : null };
         case FETCH_ITEMS_SUCCEEDED:
+            localStorage.setItem('items',payload.items);
             return {...state, items : payload.items , fetching : false };
         case FETCH_ITEMS_FAILED:
-            toast.error(payload.error.message,{
+            console.log(`Err : ${payload.error}`);
+            toast.error(payload.error,{
                 position : "top-center",
-                autoClose : false
+                autoClose : 5000
             });
+            let storageData = localStorage.getItem('items');
+            console.log(`Storage data : ${JSON.stringify(storageData)}`);
+            if(storageData !== null){
+                return {...state, items : JSON.parse(storageData), fetchingError : payload.error, fetching : false };
+            }
             return {...state, fetchingError : payload.error, fetching : false };
         case SAVE_ITEM_STARTED:
             return {...state, saving : true, savingError : null };
@@ -60,34 +69,24 @@ const reducer : (state : ItemsState, action : ActionProps) => ItemsState = (stat
             if(index === -1){
                 //creat
                 items.splice(0,0,item);
-                if(!payload.showMessage){
-                    toast.success('Save item success',{
-                        position : "top-center",
-                        autoClose : false
-                    });
-                }
+                toast.success('Save item success',{
+                    position : "top-center",
+                    autoClose : 5000
+                });
                 
             }else{
                 //modificat
                 items[index] = item;
-                if(!payload.showMessage){
-                    toast.success('Update item success',{
-                        position : "top-center",
-                        autoClose : false
-                    });
-                }
-            }
-            if(payload.showMessage){
-                toast.info(payload.message,{
+                toast.success('Update item success',{
                     position : "top-center",
-                    autoClose : false
+                    autoClose : 5000
                 });
             }
             return {...state, items, saving : false};
         case SAVE_ITEM_FAILED:
-            toast.error(payload.error.message,{
+            toast.error(payload.error,{
                 position : "top-center",
-                autoClose : false
+                autoClose : 5000
             });
             return {...state, savingError : payload.error, saving : false }
         default:
@@ -102,33 +101,24 @@ interface ItemProviderProps {
 }
 
 export const ItemProvider : React.FC<ItemProviderProps> = ({children}) => {
+    const { token } = useContext<AuthState>(AuthContext); //obtains token
     const [state,dispatch] = useReducer(reducer , initialState);
     const {items, fetching, fetchingError, saving, savingError} = state;
-    
-    useEffect(getItemsEffect,[]);
-    useEffect(wsEffect,[]);
 
-    const saveItem = useCallback<SaveItemFn>(saveItemCallback, []);
-    const value = {items,fetching,fetchingError,saving,savingError,saveItem};
-    
-    console.log('returns');
-    return (
-        <ItemContext.Provider value={value}>
-            {children}
-        </ItemContext.Provider>
-    );
-
-    function getItemsEffect(){
+    useEffect( () => {
         console.log('getItemsEffect');
         let canceled = false;
         fetchItems();
         return () => { canceled = true; }
 
         async function fetchItems() {
+            if(!token?.trim()){
+                return;
+            }
             try{
                 console.log('fetchItems -> started');
                 dispatch({type : FETCH_ITEMS_STARTED});
-                const items = await getItems();
+                const items = await getItems(token);
                 console.log('fetchItems -> succeeded');
                 if(!canceled){
                     dispatch({type : FETCH_ITEMS_SUCCEEDED, payload : {items} });
@@ -138,46 +128,63 @@ export const ItemProvider : React.FC<ItemProviderProps> = ({children}) => {
                 dispatch({type : FETCH_ITEMS_FAILED, payload : {error} });
             }
         }
-    }
+    },[token]);
 
-    async function saveItemCallback(item : ItemProps){
-        try{
-            console.log('saveItem -> started');
-            dispatch({type : SAVE_ITEM_STARTED});
-            if(item.id === 0){
-                const savedItem = await updateItem(item);
-                console.log('saveItem -> succeeded');
-                dispatch({type : SAVE_ITEM_SUCCEEDED, payload : {item : savedItem, showMessage : false} });
-            }else{
-                const savedItem = await (item.id? updateItem(item) : addItem(item));
-                console.log('saveItem -> succeeded');
-                dispatch({type : SAVE_ITEM_SUCCEEDED, payload : {item : savedItem, showMessage : false} });
-            }
-        }catch(error){
-            console.log('saveItem -> failed');
-            dispatch({type : SAVE_ITEM_FAILED, payload : {error} });
-            throw error;
-        }
-    }
-
-    function wsEffect(){
+    useEffect( () => {
+        //websocket effects
         let canceled = false;
         console.log('Web Socket connecting...');
-        const closeWebSocket = myWebSocket( messageReceived => {
-            if(canceled){
-                return;
-            }
-
-            const {event,message,item} = messageReceived;
-            if(event === 'created' || event === 'updated'){
-                dispatch({type : SAVE_ITEM_SUCCEEDED, payload : {item : item, message : message, showMessage : true} });
-            }
-        });
-
+        let closeWebSocket: () => void;
+        if(token?.trim()){
+            closeWebSocket = myWebSocket( token,messageReceived => {
+                if(canceled){
+                    return;
+                }
+                const {event,payload} = messageReceived;
+                console.log(`Web Socket Event : ${event}`);
+                if(event === 'created' || event === 'updated'){
+                    console.log(`Web Socket Item : ${payload}`);
+                    dispatch({type : SAVE_ITEM_SUCCEEDED, payload : {item : payload} });
+                }
+            });
+        }
+        
         return () => {
             console.log('Web Socket disconnecting...');
             canceled = true;
-            closeWebSocket();
+            closeWebSocket?.();
+        }
+    },[token]);
+    const saveItem = useCallback<SaveItemFn>(saveItemCallback, [token]);
+    const value = {items,fetching,fetchingError,saving,savingError,saveItem};
+    
+    console.log('return ItemProvider');
+    return (
+        <ItemContext.Provider value={value}>
+            {children}
+        </ItemContext.Provider>
+    );
+
+
+    async function saveItemCallback(item : ItemProps){
+        if(!token?.trim()){
+            return;
+        }
+        try{
+            console.log('saveUpdateItem -> started');
+            console.log(`Item to save : ${JSON.stringify(item)}`);
+            dispatch({type : SAVE_ITEM_STARTED});
+            console.log(`Item id : ${item.id}`);
+            if(item.id === undefined){
+                await addItem(token,item);
+            }else{
+                await updateItem(token,item);
+            }
+            console.log('saveUpdateItem -> succeeded');
+        }catch(error){
+            console.log('saveUpdateItem -> failed');
+            dispatch({type : SAVE_ITEM_FAILED, payload : {error} });
+            throw error;
         }
     }
 

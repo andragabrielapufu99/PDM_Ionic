@@ -1,0 +1,26 @@
+{
+  "name": "secure-server",
+  "version": "1.0.0",
+  "description": "mobile-app-server",
+  "main": "index.js",
+  "dependencies": {
+    "@koa/cors": "^3.1.0",
+    "http": "^0.0.1-security",
+    "koa": "^2.13.0",
+    "koa-bodyparser": "^4.3.0",
+    "koa-cors": "0.0.16",
+    "koa-jwt": "^4.0.0",
+    "koa-router": "^10.0.0",
+    "koa-send": "^5.0.1",
+    "mongoose": "^5.10.15",
+    "validator": "^13.1.17",
+    "ws": "^7.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node index.js",
+    "test": "mocha --compilers js:babel-core/register src/**/*.spec.js"
+  },
+  "author": "Andra",
+  "license": "ISC"
+}
