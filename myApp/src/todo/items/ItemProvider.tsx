@@ -16,7 +16,6 @@ export interface ItemsState {
     saving : boolean,
     savingError? : Error | null,
     saveItem? : SaveItemFn,
-    lastFetchId : Number,
     size : Number,
     fetchData? : FetchItemFn,
 }
@@ -33,7 +32,6 @@ const initialState : ItemsState = {
     saveItem : undefined,
     fetchingError : null,
     savingError : null,
-    lastFetchId : -1,
     size : 7,
     fetchData : undefined,
 }
@@ -58,25 +56,16 @@ const reducer : (state : ItemsState, action : ActionProps) => ItemsState = (stat
             return {...state, fetchingError : payload.error, fetching : false};  
         case FETCH_ITEMS_SCROLL:
             let itemsReceived = payload.result;
-            let lastId : Number = state.lastFetchId;
-            if(itemsReceived.length > 0){
-                lastId = Number(itemsReceived[itemsReceived.length-1].id);
-            }
             if(state.items.length === 0 && itemsReceived.length === 0){
                 const items_store = localStorage.getItem('items');
                 if(items_store !== null){
                     return {...state, items: JSON.parse(items_store)};
                 }
             }
-            const containsId = (i : ItemProps) : boolean => i.id === lastId;
-            let isRepeat  = state.items.some(containsId);
-            if(isRepeat){
-                //return state;
-            }
             let newsItems : ItemProps[] = [];
             newsItems = [...(state.items || []),...itemsReceived];
             localStorage.setItem('items',JSON.stringify(newsItems));
-            return {...state,items : newsItems, lastFetchId : lastId,fetching : false};
+            return {...state,items : newsItems, fetching : false};
             
         case SAVE_ITEM_STARTED:
             return {...state, saving : true, savingError : null };
@@ -120,7 +109,7 @@ interface ItemProviderProps {
 export const ItemProvider : React.FC<ItemProviderProps> = ({children}) => {
     const { token } = useContext<AuthState>(AuthContext); //obtains token
     const [state,dispatch] = useReducer(reducer , initialState);
-    const {items, fetching, fetchingError, saving, savingError, lastFetchId, size} = state;
+    const {items, fetching, fetchingError, saving, savingError, size} = state;
 
     async function addItemsCallback() : Promise<ItemProps[]>{
         let result : ItemProps[] = [];
@@ -164,7 +153,7 @@ export const ItemProvider : React.FC<ItemProviderProps> = ({children}) => {
     },[token]);
 
     const saveItem = useCallback<SaveItemFn>(saveItemCallback, [token]);
-    const fetchData = useCallback<FetchItemFn>(addItemsCallback,[token,fetching,size,lastFetchId]);
+    const fetchData = useCallback<FetchItemFn>(addItemsCallback,[token,fetching,size]);
 
     const value = {
         items,
@@ -173,7 +162,6 @@ export const ItemProvider : React.FC<ItemProviderProps> = ({children}) => {
         saving,
         savingError,
         saveItem,
-        lastFetchId,
         size,
         fetchData,
     };
