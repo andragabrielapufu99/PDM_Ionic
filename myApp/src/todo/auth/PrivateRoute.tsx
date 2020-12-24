@@ -13,11 +13,15 @@ export const PrivateRoute : React.FC<PrivateRouteProps> = ({ component : Compone
     const { isAuthenticated } = useContext<AuthState>(AuthContext);
     return (
         <Route {...rest} render = { props => {
-            if(isAuthenticated){
+            if (isAuthenticated){
+                console.log('PrivateRoute : return component');
                 // @ts-ignore
                 return <Component {...props} />;
             }
-            return <Redirect to = {{pathname: '/login'}}/>
+            else {
+                console.log('PrivateRoute : redirect /login');
+                return <Redirect to = {{pathname: '/login'}}/>
+            }
         }}/>
     );
 };

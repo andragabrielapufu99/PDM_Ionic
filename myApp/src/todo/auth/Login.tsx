@@ -10,20 +10,20 @@ interface LoginState {
 }
 
 export const Login : React.FC<RouteComponentProps> = ({history}) => {
-    const { isAuthenticated, isAuthenticating, pendingAuthenticating,authenticationError, login } = useContext(AuthContext);
+    const { isAuthenticated, isAuthenticating, login } = useContext(AuthContext);
     const [state,setState] = useState<LoginState>({});
     const { username, password } = state;
 
-    const handleLogin = () => {
-        login?.(username,password);
+    const handleLogin = async () => {
+        await login?.(username,password);
     };
 
     if(isAuthenticated){
-        console.log('intru aici');
+        console.log('LoginComponent : redirect /');
         return <Redirect to = {{pathname : '/'}} />
     }
 
-    console.log('render Login');
+    console.log('LoginComponent : return');
     return (
         <IonPage>
             <IonHeader>

@@ -4,8 +4,8 @@ import { baseURL, prefix,withLogs,authConfig } from '../common/index';
 
 const itemsURL = `http://${baseURL}${prefix}/items`;
 
-export const getItems : (token : string) => Promise<ItemProps[]> = (token) => {
-    return withLogs(axios.get(`${itemsURL}`,authConfig(token)),'getItems');
+export const getItems : (token : string, size : Number) => Promise<ItemProps[]> = (token, size) => {
+    return withLogs(axios.get(`${itemsURL}/fetch/${size}`,authConfig(token)),'getItems');
 }
 
 export const addItem : (token : string, item : ItemProps) => Promise<ItemProps> = (token, item) => {
