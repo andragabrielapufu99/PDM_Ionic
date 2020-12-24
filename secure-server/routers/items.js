@@ -28,6 +28,22 @@ const getItemsByUser = async (ctx) => {
     ctx.response.status = 200; //ok
 };
 
+const getItemsByUserSize = async (ctx) => {
+    const userId = ctx.state.user.username;
+    const foundUser = await store.findUserByCredentials({username : userId});
+    if(foundUser === null && foundUser === undefined){
+        const err = new Error("This username doesn't exist!");
+        err.statusCode = 404; //not found
+        throw err;
+    }
+    const size = ctx.params.size;
+    await validator.validateSize(size);
+    const items = await store.findItemsByUserSize(foundUser, Number(size));
+    ctx.response.body = items;
+    ctx.response.status = 200; //ok
+    
+};
+
 const saveItem = async (ctx) => {
     const userId = ctx.state.user.username;
     const item = ctx.request.body;
@@ -85,10 +101,8 @@ const updateItem = async (ctx) => {
     }
 
     await validator.validateItem(item);
-    console.log(`Receive : ${JSON.stringify(item)}`);
     let updatedItem = await store.updateItem(item);
     updatedItem = await convertItem(updatedItem);
-    console.log(`Return : ${JSON.stringify(updatedItem)}`);
     ctx.response.body = { item : updatedItem };
     ctx.response.status = 200; //ok
     wss.broadcast(userId,{ event : 'updated', payload : updatedItem});
@@ -115,6 +129,10 @@ const deleteItem = async (ctx) => {
 
 router.get('/', async(ctx) => {
     await getItemsByUser(ctx);
+});
+
+router.get('/fetch/:size', async(ctx) => {
+    await getItemsByUserSize(ctx);
 });
 
 router.post('/',async (ctx) => {

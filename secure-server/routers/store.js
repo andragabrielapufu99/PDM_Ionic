@@ -16,6 +16,9 @@ const User = new Schema({
     password : {
         type : String,
         required : true
+    },
+    lastIdFetched : {
+        type : Number
     }
 });
 
@@ -86,6 +89,28 @@ const findItemsByUser = async (userId) => {
     return await Items.find({userId : userId});
 };
 
+const updateUser = async (newUser) => {
+    return await Users.updateOne({'username' : newUser.username}, newUser);
+};
+
+const findItemsByUserSize = async (user,size) => {
+    const items = await Items.find({$and : [{userId : user.username}, {id : {$gt : Number(user.lastIdFetched) }}]});
+    if(items.length > 0){
+        if(items.length > size){
+            const res = items.slice(0,size);
+            let lastId = res[res.length - 1].id;
+            user.lastIdFetched = lastId;
+            await updateUser(user);
+            return res;
+        }else{
+            let lastId = items[items.length - 1].id;
+            user.lastIdFetched = lastId;
+            await updateUser(user);
+        }
+    }
+    return items;
+};
+
 const insertUser = async (user) => {
     const result = await Users.insertMany(user);
     return result[0];
@@ -127,13 +152,15 @@ const getItemsByUser = async (userId) => {
 const Store = {
     'findUserByCredentials' : findUserByCredentials,
     'insertUser' : insertUser,
+    'updateUser' : updateUser,
     'findItemsByUser' : findItemsByUser,
+    'findItemsByUserSize' : findItemsByUserSize,
     'insertItem' : insertItem,
     'findItemById' : findItemById,
     'updateItem' : updateItem,
     'checkExistsItem' : checkExistsItem,
     'deleteUser' : deleteUser,
-    'getItemsByUser' : getItemsByUser
+    'getItemsByUser' : getItemsByUser,
 };
 
 module.exports = Store;

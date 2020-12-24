@@ -52,6 +52,8 @@ router.post('/login', async(ctx) => {
         err.statusCode = 404; //not found
         throw err;
     }
+    user.lastIdFetched = -1;
+    await store.updateUser(user);
     ctx.response.body = { token : createToken(user) };
     ctx.response.status = 200; //ok
 });

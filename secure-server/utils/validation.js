@@ -47,8 +47,23 @@ const validateItem = async (item) => {
     }
 };
 
+const validateSize = async (size) => {
+    if(typeof size === 'string' && !validator.isInt(size)){
+        const err = new Error('Size must be a pozitive number!'); //bad request
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if(Number(size) <= 0){
+        const err = new Error('Size must be a pozitive number!'); //bad request
+        err.statusCode = 400;
+        throw err;
+    }
+}
+
 module.exports = {
     'validateUser' : validateUser, 
     'validateCredentials' : validateCredentials, 
-    'validateItem' : validateItem
+    'validateItem' : validateItem,
+    'validateSize' : validateSize,
 };
