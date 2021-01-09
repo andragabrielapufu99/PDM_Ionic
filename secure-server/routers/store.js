@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Double = require('@mongoosejs/double');
 const connectionString = "mongodb+srv://puffy:puffy1999@cluster0.daezy.mongodb.net/MusicStore?retryWrites=true&w=majority";
 const Schema = mongoose.Schema;
 
@@ -42,6 +43,15 @@ const Item = new Schema({
     genre : {
         type : String,
         required : true
+    },
+    pathImage : {
+        type : String
+    },
+    latitude : {
+        type : Double
+    },
+    longitude : {
+        type : Double
     },
     userId : {
         type : String

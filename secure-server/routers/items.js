@@ -11,7 +11,10 @@ const convertItem = async (itemBd) => {
     item['artist'] = itemBd.artist;
     item['year'] = itemBd.year;
     item['genre'] = itemBd.genre;
+    item['pathImage'] = itemBd.pathImage;
     item['userId'] = itemBd.userId;
+    item['latitude'] = itemBd.latitude;
+    item['longitude'] = itemBd.longitude;
     return item;
 };
 
@@ -58,7 +61,7 @@ const saveItem = async (ctx) => {
     const foundItem = await store.checkExistsItem(item);
     if(foundItem !== null && foundItem !== undefined){
         const err = new Error(`The item with title ${item.title} and artist ${item.artist} already exists for user ${item.userId}!`);
-        err.statusCode = 400; //bad request
+        err.statusCode = 409; //bad request
         throw err;
     }
     let result = await store.insertItem(item);

@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "@koa/cors": "^3.1.0",
+    "@mongoosejs/double": "^0.2.0",
     "http": "^0.0.1-security",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
